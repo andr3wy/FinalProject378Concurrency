@@ -58,6 +58,25 @@ class FreeStack
                     std::memory_order_relaxed));
         }
 
+        std::shared_ptr<T> peek() {
+            counted_node_ptr old_head=
+            head.load(std::memory_order_relaxed);
+
+            return std::shared_ptr<T>();
+
+            // node* const ptr=old_head.ptr;
+            // if(!ptr)
+            // {
+            //     return std::shared_ptr<T>();
+            // } else {
+            //     if(ptr->data == NULL) {
+            //         return std::shared_ptr<T>();
+            //     }
+            //     return std::shared_ptr<T>(ptr->data);
+            // }
+        }
+        
+
         std::shared_ptr<T> pop()
         {
             counted_node_ptr old_head=

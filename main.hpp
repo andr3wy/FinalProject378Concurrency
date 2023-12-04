@@ -8,7 +8,11 @@
 using namespace std;
 
 struct Params {
-    int num_threads = 1;
+    int readers = 1;
+    int writers = 1;
+    int reads = 100000;
+    int writes = 100000;
+    void* data_structure;
 };
 
 void read_arguments(int, char **, Params&);

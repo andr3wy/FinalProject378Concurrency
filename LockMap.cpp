@@ -1,116 +1,148 @@
-#include <functional>
-#include <shared_mutex>
-#include <list>
-#include <algorithm>
 
-template<typename Key,typename Value,typename Hash=std::hash<Key>>
-class threadsafe_lookup_table
-{
-    private:
-        class bucket_type
-        {
-        private:
-            typedef std::pair<Key,Value> bucket_value;
-            typedef std::list<bucket_value> bucket_data;
-            typedef typename bucket_data::iterator bucket_iterator;
-            typedef typename bucket_data::const_iterator bucket_const_iterator;
-            bucket_data data;
-            mutable std::shared_mutex mutex;
 
-            bucket_iterator find_entry_for(Key const& key)
-            {
+#include <stdio.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <iostream>
+#include <ostream>
+#include <chrono>
+#include <mutex>
+#include <assert.h>
 
-                return std::find_if(data.begin(),data.end(),
-                                    [&](bucket_value const& item)
-                                    {
-                                        return item.first==key;
-                                        });
-            }
 
-            bucket_const_iterator find_entry_for(Key const& key) const
-            {
+template <typename K, typename V>
+class HashNode {
+public:
+    K key;  
+    V value;
+    // next bucket with the same key
+    HashNode *next;
 
-                return std::find_if(data.begin(),data.end(),
-                                    [&](bucket_value const& item)
-                                    {
-                                        return item.first==key;
-                                        });
-            }
+    HashNode(const K &key, const V &value) :
+    key(key), value(value), next(NULL) {
+    }
 
-        public:
-            Value value_for(Key const& key,Value const& default_value) const
-            {
-                std::shared_lock<std::shared_mutex> lock(mutex);
-                bucket_const_iterator const found_entry=find_entry_for(key);
-                return (found_entry==data.end())?
-                    default_value:found_entry->second;
-            }
-            void add_or_update_mapping(Key const& key,Value const& value)
-            {
-                std::unique_lock<std::shared_mutex> lock(mutex);
-                bucket_iterator const found_entry=find_entry_for(key);
-                if(found_entry==data.end())
-                {
-                    data.push_back(bucket_value(key,value));
-                }
-                else {
-                    found_entry->second=value;
-                }
-            }
-            
-            void remove_mapping(Key const& key) {
-                std::unique_lock<std::shared_mutex> lock(mutex);
-                bucket_iterator const found_entry=find_entry_for(key);
-                if(found_entry!=data.end())
-                {
-                    data.erase(found_entry);
-                }
-            }
-        };
-        std::vector<std::unique_ptr<bucket_type> > buckets;
-        Hash hasher;
 
-        bucket_type const& get_bucket(Key const& key) const
-        {
-            std::size_t const bucket_index=hasher(key)%buckets.size();
-            return *buckets[bucket_index];
+// private:
+//     // key-value pair
+//     K key;
+//     V value;
+//     // next bucket with the same key
+//     HashNode *next;
+};
+
+#define TABLE_SIZE 50000
+
+static pthread_mutex_t locks[TABLE_SIZE];
+
+// Hash map class template
+template <typename K, typename V>
+class HashMap {
+public:
+    HashMap() {
+        // construct zero initialized hash table of size
+        table = new HashNode<K, V> *[TABLE_SIZE]();
+        // locks = new pthread_mutex_t [TABLE_SIZE];
+        for (int i = 0; i < TABLE_SIZE; i ++) {
+            pthread_mutex_init(&locks[i], NULL);
         }
-        bucket_type& get_bucket(Key const& key) 
-        {
-            std::size_t const bucket_index=hasher(key)%buckets.size();
-            return *buckets[bucket_index];
-        }
+    }
 
-    public:
-        typedef Key key_type;
-        typedef Value mapped_type;
-        typedef Hash hash_type;
-        threadsafe_lookup_table(
-            unsigned num_buckets=32 * 1024,Hash const& hasher_=Hash()):
-            buckets(num_buckets),hasher(hasher_)
-            {
-                for(unsigned i=0;i<num_buckets;++i)
-                {
-                    buckets[i].reset(new bucket_type);
-                }
+    ~HashMap() {
+        // destroy all buckets one by one
+        for (int i = 0; i < TABLE_SIZE; ++i) {
+            HashNode<K, V> *entry = table[i];
+            while (entry != NULL) {
+                HashNode<K, V> *prev = entry;
+                entry = entry->next;
+                delete prev;
             }
-        threadsafe_lookup_table(threadsafe_lookup_table const& other)=delete;
+            table[i] = NULL;
+            pthread_mutex_destroy(&locks[i]);
+        }
+        // destroy the hash tables
+        delete [] table;
+        delete [] locks;
+    }
 
-        Value value_for(Key const& key,
-                Value const& default_value=Value()) const
-        {
-            return get_bucket(key).value_for(key,default_value);
+    bool get(const K &key, V &value) {
+        unsigned long hashValue = hashFunc(key);
+        pthread_mutex_lock(&locks[hashValue]);
+        HashNode<K, V> *entry = table[hashValue];
+
+        while (entry != NULL) {
+            if (entry->key == key) {
+                value = entry->value;
+                return true;
+            }
+            entry = entry->next;
+        }
+        pthread_mutex_unlock(&locks[hashValue]);
+        return false;
+    }
+
+    void put(const K &key, const V &value) {
+        unsigned long hashValue = hashFunc(key);
+        
+        pthread_mutex_lock(&locks[hashValue]);
+        HashNode<K, V> *prev = NULL;
+        HashNode<K, V> *entry = table[hashValue];
+        
+
+        while (entry != NULL && entry->key != key) {
+            prev = entry;
+            entry = entry->next;
         }
 
-        void add_or_update_mapping(Key const& key,Value const& value)
-        {
-            get_bucket(key).add_or_update_mapping(key,value);
+        if (entry == NULL) {
+            entry = new HashNode<K, V>(key, value);
+            if (prev == NULL) {
+                // insert as first bucket
+                table[hashValue] = entry;
+            } else {
+                prev->next = entry;
+            }
+        } else {
+            // just update the value
+            entry->value = value;
+        }
+        pthread_mutex_unlock(&locks[hashValue]);
+    }
+
+    void remove(const K &key) {
+        unsigned long hashValue = hashFunc(key);
+        pthread_mutex_lock(&locks[hashValue]);
+        HashNode<K, V> *prev = NULL;
+        HashNode<K, V> *entry = table[hashValue];
+
+        while (entry != NULL && entry->key != key) {
+            prev = entry;
+            entry = entry->next;
         }
 
-        void remove_mapping(Key const& key)
-        {
-            get_bucket(key).remove_mapping(key);
+        if (entry == NULL) {
+            // key not found
+            pthread_mutex_unlock(&locks[hashValue]);
+            return;
         }
+        else {
+            if (prev == NULL) {
+                // remove first bucket of the list
+                table[hashValue] = entry->next;
+            } else {
+                prev->next = (entry->next);
+            }
+            delete entry;
+        }
+        pthread_mutex_unlock(&locks[hashValue]);
+    }
 
+    int hashFunc(const K &key) {
+        return static_cast<unsigned long>(key) % TABLE_SIZE;
+    }
 
+private:
+    // hash table
+    HashNode<K, V> **table;
+    // pthread_mutex_t **locks;
 };

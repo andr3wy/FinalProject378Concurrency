@@ -49,12 +49,14 @@ void read_arguments(int argc, char** argv, Params& params) {
 void *free_queue_write(void *input) {
 
     Params *params = (Params *) input;
-    lockfree::mpmc::Queue <int, 1000> *free_queue = (lockfree::mpmc::Queue <int, 1000> *) (params->data_structure);
+    // lockfree::mpmc::Queue <int, 1000> *free_queue = (lockfree::mpmc::Queue <int, 1000> *) (params->data_structure);
     //
+    FreeQueue<int> *free_queue = (FreeQueue<int> *) (params->data_structure);
     int tmp;
     for (int i = 0; i < params->writes; ++ i ) {
-        (*free_queue).Push(1);
-        // (*free_queue).Pop(tmp);
+        (*free_queue).push(1);
+        int lol = 0;
+        (*free_queue).pop(lol);
     }
 
     return NULL;
@@ -63,11 +65,12 @@ void *free_queue_write(void *input) {
 void *free_queue_read(void *input) {
 
     Params *params = (Params *) input;
-    lockfree::mpmc::Queue <int, 1000> *free_queue = (lockfree::mpmc::Queue <int, 1000> *) (params->data_structure);
+    FreeQueue <int> *free_queue = (FreeQueue <int> *) (params->data_structure);
     int tmp;
     for (int i = 0; i < params->reads; ++ i ) {
-        // (*free_queue).Peek();
-        (*free_queue).Pop(tmp);
+        // (*free_queue).peek();
+        int lol;
+        (*free_queue).pop(lol);
     }
 
     return NULL;
@@ -76,13 +79,11 @@ void *free_queue_read(void *input) {
 void *lock_queue_write(void *input) {
 
     Params *params = (Params *) input;
-    queue_t *queue = (queue_t *) (params->data_structure);
+    Queue *queue = (Queue *) (params->data_structure);
     int tmp;
     for (int i = 0; i < params->writes; ++ i ) {
-        Queue_Enqueue(queue, 1);
-        // Queue_Dequeue(queue, &tmp);
-        // (*queue).push(1);
-        // (*queue).pop();
+        (*queue).enqueue(1);
+        (*queue).dequeue(&tmp);
     }
 
     return NULL;
@@ -91,11 +92,10 @@ void *lock_queue_write(void *input) {
 void *lock_queue_read(void *input) {
 
     Params *params = (Params *) input;
-    queue_t *queue = (queue_t *) (params->data_structure);
+    Queue *queue = (Queue *) (params->data_structure);
     int tmp;
     for (int i = 0; i < params->reads; ++ i ) {
-        // Queue_Peek(queue);
-        Queue_Dequeue(queue, &tmp);
+        (*queue).peek();
     }
 
     return NULL;
@@ -194,10 +194,10 @@ void *free_map_read(void *input) {
 
 void *lock_map_write(void *input) {
     Params *params = (Params*) input;
-    threadsafe_lookup_table<int,double> * ihatecodingmap = (threadsafe_lookup_table<int, double> *)  (params->data_structure);
+    HashMap<int,double> * ihatecodingmap = (HashMap<int, double> *)  (params->data_structure);
 
     for(int i = 0; i < params->writes; ++i) {
-        ihatecodingmap->add_or_update_mapping(i + pthread_self() * params->writes, i);
+        ihatecodingmap->put(i + pthread_self() * params->writes, i);
         
     }
     // map(32*1024);
@@ -210,10 +210,12 @@ void *lock_map_write(void *input) {
 
 void *lock_map_read(void *input) {
     Params *params = (Params*) input;
-    threadsafe_lookup_table<int,double> * map = (threadsafe_lookup_table<int, double> *)  (params->data_structure);
+    HashMap<int,double> * map = (HashMap<int, double> *)  (params->data_structure);
 
+    double tmp;
     for(int i = 0; i < params->writes; ++i) {
-        map->value_for(i + pthread_self() * params->writes);
+        int j = i + pthread_self() * params->writes;
+        map->get(j, tmp);
         
     }
 
@@ -292,9 +294,8 @@ int main (int argc, char** argv) {
     // QUEUE
 
 
-    lockfree::mpmc::Queue <int, 1000> free_queue;
-    queue_t queue;
-    Queue_Init(&queue);
+    FreeQueue <int> free_queue(100000);
+    Queue queue;
 
     params.data_structure = &free_queue;
     start = std::chrono::high_resolution_clock::now();
@@ -379,7 +380,7 @@ int main (int argc, char** argv) {
     
     // threadsafe_lookup_table<int,double> thread_lock_map() = );
     // int size = 32 * 1024;
-    params.data_structure = new threadsafe_lookup_table<int, double>();
+    params.data_structure = new HashMap<int, double>();
 
     start = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < params.readers; i ++) {

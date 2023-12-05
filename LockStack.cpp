@@ -3,69 +3,79 @@
 #include <mutex>
 #include <stdlib.h>
 #include <memory>
-struct empty_stack: std::exception
-{
-    const char* what() const throw() {
-        return NULL;
-    }
-    ~empty_stack() {
 
-    }
-};
+#include <stdio.h>
+#include <getopt.h>
+#include <iostream>
+#include <ostream>
+#include <chrono>
+#include <mutex>
+#include <assert.h>
+
+using namespace std;
+
 template<typename T>
 class LockStack
 {
     private:
         std::stack<T> data;
-        mutable std::mutex m;
+        pthread_mutex_t mutex;
     public:
-    LockStack(){}
-    LockStack(const LockStack& other)
-    {
-        std::lock_guard<std::mutex> lock(other.m);
-        data=other.data;
+    LockStack(){
+        pthread_mutex_init(&mutex, NULL);
     }
-    virtual ~LockStack() {
 
-    }
-    LockStack& operator=(const LockStack&) = delete;
     void push(T new_value)
     {
-        std::lock_guard<std::mutex> lock(m);
+        pthread_mutex_lock(&mutex);
         data.push(std::move(new_value));
+        pthread_mutex_unlock(&mutex);
     }
 
     std::shared_ptr<T> peek()
     {
-        std::lock_guard<std::mutex> lock(m);
-        if(data.empty()) 
+        pthread_mutex_lock(&mutex);
+        if(data.empty()) {
+            pthread_mutex_unlock(&mutex);
             return std::shared_ptr<T>();
+        }
         std::shared_ptr<T> const res(
         std::make_shared<T>(data.top()));
+        pthread_mutex_unlock(&mutex);
         return res;
     }
 
     std::shared_ptr<T> pop()
     {
-        std::lock_guard<std::mutex> lock(m);
-        if(data.empty()) 
+        pthread_mutex_lock(&mutex);
+        if(data.empty()) {
+            pthread_mutex_unlock(&mutex);
             return std::shared_ptr<T>();
+        }
         std::shared_ptr<T> const res(
         std::make_shared<T>(std::move(data.top())));
         data.pop();
+        pthread_mutex_unlock(&mutex);
         return res;
     }
     void pop(T& value)
     {
-        std::lock_guard<std::mutex> lock(m);
-        if(data.empty()) 
+        pthread_mutex_lock(&mutex);
+        if(data.empty()) {
+            pthread_mutex_unlock(&mutex);
             return;
+        }
+            
         value=std::move(data.top());
         data.pop();
+        pthread_mutex_unlock(&mutex);
     }
     bool empty() const
     {
-        std::lock_guard<std::mutex> lock(m);
-        return data.empty();
+        bool res;
+        pthread_mutex_lock(&mutex);
+        res = data.empty();
+        pthread_mutex_unlock(&mutex);
+        return res;
     }
 };

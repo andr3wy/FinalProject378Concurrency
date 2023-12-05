@@ -20,7 +20,7 @@ echo "" > "free_map.txt"
 
 # Loop from 1 to 10000, incrementing by 2
 # for n in {1000..1000000000}; do
-for (( n=1000; n <= 1000000000; n *= 10 ))
+for (( n=0; n <= 7; n += 1 ))
 do
     total_time_lock_stack=0
     total_time_free_stack=0
@@ -35,7 +35,7 @@ do
     for run in {1..5}
     do
         # Run the command and capture the time output
-        command_output=$(./main -r 4 -w 4 -R $n -W $n >&1)
+        command_output=$(./main -r $n -w 1 -R 1000000 -W 1000000 >&1)
         # /bst --hash-workers 5  --data-workers 10 --input fine.txt --comp-workers -2 > outpasdf.txt
 
         # Extract the time value from the command output (modify this part based on your actual command output)

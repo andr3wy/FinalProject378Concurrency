@@ -52,9 +52,9 @@ void *free_queue_write(void *input) {
     lockfree::mpmc::Queue <int, 1000> *free_queue = (lockfree::mpmc::Queue <int, 1000> *) (params->data_structure);
     //
     int tmp;
-    for (int i = 0; i < params->writes / 2; ++ i ) {
+    for (int i = 0; i < params->writes; ++ i ) {
         (*free_queue).Push(1);
-        (*free_queue).Pop(tmp);
+        // (*free_queue).Pop(tmp);
     }
 
     return NULL;
@@ -64,8 +64,10 @@ void *free_queue_read(void *input) {
 
     Params *params = (Params *) input;
     lockfree::mpmc::Queue <int, 1000> *free_queue = (lockfree::mpmc::Queue <int, 1000> *) (params->data_structure);
+    int tmp;
     for (int i = 0; i < params->reads; ++ i ) {
-        (*free_queue).Peek();
+        // (*free_queue).Peek();
+        (*free_queue).Pop(tmp);
     }
 
     return NULL;
@@ -76,9 +78,9 @@ void *lock_queue_write(void *input) {
     Params *params = (Params *) input;
     queue_t *queue = (queue_t *) (params->data_structure);
     int tmp;
-    for (int i = 0; i < params->writes / 2; ++ i ) {
+    for (int i = 0; i < params->writes; ++ i ) {
         Queue_Enqueue(queue, 1);
-        Queue_Dequeue(queue, &tmp);
+        // Queue_Dequeue(queue, &tmp);
         // (*queue).push(1);
         // (*queue).pop();
     }
@@ -90,8 +92,10 @@ void *lock_queue_read(void *input) {
 
     Params *params = (Params *) input;
     queue_t *queue = (queue_t *) (params->data_structure);
+    int tmp;
     for (int i = 0; i < params->reads; ++ i ) {
-        Queue_Peek(queue);
+        // Queue_Peek(queue);
+        Queue_Dequeue(queue, &tmp);
     }
 
     return NULL;
@@ -107,9 +111,9 @@ void *free_stack_write(void *input) {
 
     Params *params = (Params *) input;
     FreeStack <int> *free_stack = (FreeStack<int> *) (params->data_structure);
-    for (int i = 0; i < params->writes / 2; ++ i ) {
+    for (int i = 0; i < params->writes; ++ i ) {
         (*free_stack).push(1);
-        (*free_stack).pop();
+        // (*free_stack).pop();
     }
 
     return NULL;
@@ -120,7 +124,8 @@ void *free_stack_read(void *input) {
     Params *params = (Params *) input;
     FreeStack <int> *free_stack = (FreeStack<int> *) (params->data_structure);
     for (int i = 0; i < params->reads; ++ i ) {
-        (*free_stack).peek();
+        // (*free_stack).peek();
+        (*free_stack).pop();
     }
 
     return NULL;
@@ -130,9 +135,9 @@ void *lock_stack_write(void *input) {
 
     Params *params = (Params *) input;
     LockStack <int> *lock_stack = (LockStack<int> *) (params->data_structure);
-    for (int i = 0; i < params->writes / 2; ++ i ) {
+    for (int i = 0; i < params->writes; ++ i ) {
         (*lock_stack).push(1);
-        (*lock_stack).pop();
+        // (*lock_stack).pop();
     }
 
     return NULL;
@@ -143,7 +148,8 @@ void *lock_stack_read(void *input) {
     Params *params = (Params *) input;
     LockStack <int> *lock_stack = (LockStack<int> *) (params->data_structure);
     for (int i = 0; i < params->reads; ++ i ) {
-        (*lock_stack).peek();
+        // (*lock_stack).peek();
+        (*lock_stack).pop();
     }
 
     return NULL;

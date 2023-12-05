@@ -5,8 +5,8 @@ names = ["free_map", "lock_map", "free_queue", "lock_queue", "free_stack", "lock
 colors = ["red", "blue", "green", "purple", "orange", "pink"]
 
 plt.figure(figsize=(10, 6))
-plt.title("Single Writer with Scaling Readers (10 Million Operations Each)")
-plt.xlabel('Number of Readers')
+plt.title("Single Consumer with Scaling Producers (10 Million Operations Each)")
+plt.xlabel('Number of Producers')
 plt.ylabel('Time (Milliseconds)')
 
 for i in range(len(names)) :
@@ -31,10 +31,10 @@ for i in range(len(names)) :
     for block in data_blocks1:
         data_blocks.append(float(block))
     # Create the graph
-    x_values = list(i for i in range(0, 8))
+    x_values = list(i for i in range(0, 3))
 
 
-    plt.plot(x_values[0:8], data_blocks[0:8], marker='o', linestyle='-', color=color, label=nam)
+    plt.plot(x_values[0:3], data_blocks[0:3], marker='o', linestyle='-', color=color, label=nam)
     plt.legend(loc="upper left")
     plt.grid(True)
 

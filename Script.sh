@@ -35,7 +35,7 @@ do
     for run in {1..5}
     do
         # Run the command and capture the time output
-        command_output=$(./main -r $n -w 1 -R 1000000 -W 1000000 >&1)
+        command_output=$(./main -r 1 -w $n -R 1000000 -W 1000000 >&1)
         # /bst --hash-workers 5  --data-workers 10 --input fine.txt --comp-workers -2 > outpasdf.txt
 
         # Extract the time value from the command output (modify this part based on your actual command output)

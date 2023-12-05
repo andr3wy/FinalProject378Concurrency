@@ -22,13 +22,6 @@ public:
     key(key), value(value), next(NULL) {
     }
 
-
-// private:
-//     // key-value pair
-//     K key;
-//     V value;
-//     // next bucket with the same key
-//     HashNode *next;
 };
 
 #define TABLE_SIZE 50000

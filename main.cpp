@@ -251,7 +251,7 @@ int main (int argc, char** argv) {
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
-    cout << duration.count() << endl;
+    cout << "FreeStack: " << duration.count() << endl;
 
 
     // lock stack
@@ -276,7 +276,7 @@ int main (int argc, char** argv) {
     }
     end = std::chrono::high_resolution_clock::now();
     duration = chrono::duration_cast<chrono::milliseconds>(end - start);
-    cout << duration.count() << endl;
+    cout << "LockStack: " << duration.count() << endl;
 
 
     // ==========================================================================
@@ -310,7 +310,7 @@ int main (int argc, char** argv) {
     }
     end = std::chrono::high_resolution_clock::now();
     duration = chrono::duration_cast<chrono::milliseconds>(end - start);
-    cout << duration.count() << endl;
+    cout << "FreeQueue: " << duration.count() << endl;
 
 
     params.data_structure = &queue;
@@ -335,7 +335,7 @@ int main (int argc, char** argv) {
     }
     end = std::chrono::high_resolution_clock::now();
     duration = chrono::duration_cast<chrono::milliseconds>(end - start);
-    cout << duration.count() << endl;
+    cout << "LockQueue: " << duration.count() << endl;
 
 
 
@@ -367,7 +367,7 @@ int main (int argc, char** argv) {
     }
     end = std::chrono::high_resolution_clock::now();
     duration = chrono::duration_cast<chrono::milliseconds>(end - start);
-    cout << duration.count() << endl;
+    cout << "FreeMap: " << duration.count() << endl;
 
 
     
@@ -393,7 +393,7 @@ int main (int argc, char** argv) {
     }
     end = std::chrono::high_resolution_clock::now();
     duration = chrono::duration_cast<chrono::milliseconds>(end - start);
-    cout << duration.count() << endl;
+    cout << "LockMap: " << duration.count() << endl;
 
     return 0;
 
